@@ -49,10 +49,7 @@ public class ShortURLServiceImpl implements ShortURLService {
 		} catch (DuplicateKeyException ex) {
 			logger.error(ex.getMessage());
 			logger.info("shortURL " + shortURL + " already exist ");
-			shortURL = mapURLDAO.findShortURLIfExistForOriginalURL(hashKey, originalURL);
-			if (shortURL != null) {
-				return shortURL;
-			}
+			return shortURL; 
 		}
 		
 		
