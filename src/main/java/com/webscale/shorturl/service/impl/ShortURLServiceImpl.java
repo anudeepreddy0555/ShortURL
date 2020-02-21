@@ -3,6 +3,7 @@ package com.webscale.shorturl.service.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,33 +28,33 @@ public class ShortURLServiceImpl implements ShortURLService {
 	@Override
 	public String createTinyURL(String originalURL) {
 		logger.info("originalURL "+originalURL);
-		boolean isShortUrlFound = false;
 		MapURL mapURL =  new MapURL();
 		String shortURL = null;
 		String hashKey = Utils.getHashvalue(originalURL);
-		int loopcount = 0;
-		while(!isShortUrlFound && loopcount<=10) {
-			loopcount++;
-			try {
-				long count = mapURLDAO.findCountByHashKey(hashKey);
-				if(count>0) {
-					shortURL = mapURLDAO.findShortURLIfExistForOriginalURL(hashKey, originalURL);
-					if(shortURL!=null) {
-						return shortURL; 
-					}
+		
+		try {
+			long count = mapURLDAO.findCountByHashKey(hashKey);
+			if (count > 0) {
+				shortURL = mapURLDAO.findShortURLIfExistForOriginalURL(hashKey, originalURL);
+				if (shortURL != null) {
+					return shortURL;
 				}
-				String counter = Utils.getBase62Val(count);
-				shortURL = hashKey+counter;
-				mapURL.setHashKey(hashKey);
-				mapURL.setOriginalURL(originalURL);
-				mapURL.setShortURL(shortURL);
-				mapURL = mapURLRepository.insert(mapURL);
-				isShortUrlFound = true;
-			}catch(Exception ex) {
-				logger.error(ex.getMessage());
-				logger.info("shortURL "+ shortURL+" already exist ");
-			}	
+			}
+			String counter = Utils.getBase62Val(count);
+			shortURL = hashKey + counter;
+			mapURL.setHashKey(hashKey);
+			mapURL.setOriginalURL(originalURL);
+			mapURL.setShortURL(shortURL);
+			mapURL = mapURLRepository.insert(mapURL);
+		} catch (DuplicateKeyException ex) {
+			logger.error(ex.getMessage());
+			logger.info("shortURL " + shortURL + " already exist ");
+			shortURL = mapURLDAO.findShortURLIfExistForOriginalURL(hashKey, originalURL);
+			if (shortURL != null) {
+				return shortURL;
+			}
 		}
+		
 		
 		logger.info("shortURL length "+mapURL.getShortURL().length()+" for longurl length "+mapURL.getOriginalURL().length());
 		return mapURL.getShortURL();
